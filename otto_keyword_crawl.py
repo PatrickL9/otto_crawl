@@ -8,6 +8,7 @@ otto平台根据关键词搜索，查询前3页查询结果的详情页信息
 """
 import os
 import random
+import time
 import requests
 import pandas as pd
 from lxml import etree
@@ -50,7 +51,7 @@ def get_ip_pool():
     :param
     :return:
     """
-    logging.info('获取代理IP')
+    logging.info('获取IP代理，搭建代理IP池')
     ips = requests.get(proxy_url)
     for ip in ips.text.split('\r\n'):
         if len(ip) > 8:
@@ -63,7 +64,9 @@ def get_random_ip():
     :param
     :return:随机代理IP
     """
-    return random.choice(ipPool)
+    ip = random.choice(ipPool)
+    logging.info('获取随机代理IP: ' + ip)
+    return ip
 
 
 def get_all_url(url_r):
@@ -78,10 +81,31 @@ def get_all_url(url_r):
     text = resp.content.decode('utf-8')
     # print(text)
     html = etree.HTML(text)
+    if html.xpath('//li[@id="san_pageInfo"]/span/text()'):
+        max_pages = html.xpath('//li[@id="san_pageInfo"]/span/text()')
+        max_page = int(''.join(max_pages).split('von')[1].strip())
+    else:
+        max_page = 1
     product_urls = html.xpath('//*[@id="san_resultSection"]/article//a/@href')
+    # 爬取首页所有产品url
     for pl in product_urls:
         product_list.append(main_url + pl)
     logging.info('爬取首页成功，获取目标url共' + str(len(product_urls)) + '个')
+
+    # 翻页爬取其他页数所有产品url
+    if max_page >= 2:
+        for i in range(2, max_page + 1):
+            # otto德国站页码是以72为单位递增
+            url_r2 = url_r + '?l=gq&o=' + str(72*(i-1))
+            proxies = {'http': get_random_ip()}
+            resp = requests.get(url_r2, headers=headers, proxies=proxies, timeout=5)
+            text = resp.content.decode('utf-8')
+            # print(text)
+            html = etree.HTML(text)
+            product_urls = html.xpath('//*[@id="san_resultSection"]/article//a/@href')
+            for pl in product_urls:
+                product_list.append(main_url + pl)
+            logging.info('爬取第' + str(i) + '页成功，获取目标url共' + str(len(product_urls)) + '个')
     return product_list
 
 
@@ -95,7 +119,6 @@ def get_product_detail(product_list):
     # 构造一个datafrome用于存储结果数据
     df_result = pd.DataFrame(columns=('product_url', 'title', 'reviews', 'stars', 'price', 'brand', 'variant', 'ad_tag',
                                'catalog_full', 'seller', 'product_id', 'description'))
-    count = 0
     for product_url in product_list:
         i = 0
         logging.info('开始解析产品详情页，解析url ' + product_url)
@@ -184,6 +207,8 @@ def get_product_detail(product_list):
             except Exception:
                 logging.error('页面解析失败，重新获取代理解析')
                 i += 1
+        # 涉及解析页面延迟3秒
+        time.sleep(3)
     return df_result
 
 
@@ -194,10 +219,10 @@ def save_to_csv(df, key_word):
     :param key_word: 查询的关键词
     :return:
     """
-    logging.info('保存结果到CSV文件')
     file_name = 'otto平台' + key_word + '爬取结果.csv'
     file_path = os.path.join(os.getcwd(), file_name)
     df.to_csv(file_path, index=False, sep=',')
+    logging.info('保存结果到CSV文件，保存路径： ' + file_path)
 
 
 def run(url_f, key_word):
@@ -215,6 +240,6 @@ def run(url_f, key_word):
 
 
 if __name__ == '__main__':
-    url_front = 'https://www.otto.de/suche/'
-    ky = 'bauchtrage'
+    url_front = 'https://www.otto.de/babys/ausstattung/kinderwagen/'
+    ky = 'Geschwisterwagen'
     run(url_front, ky)
