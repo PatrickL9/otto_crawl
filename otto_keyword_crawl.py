@@ -227,7 +227,7 @@ def save_to_csv(df, key_word):
 
 def run(url_f, key_word):
     """
-    结果保存到csv
+    程序运行本体
     :param url_f: 网址前缀
     :param key_word: 查询的关键词
     :return:
@@ -240,6 +240,9 @@ def run(url_f, key_word):
 
 
 if __name__ == '__main__':
+    # 初始网页前缀
     url_front = 'https://www.otto.de/babys/ausstattung/kinderwagen/'
+    # 搜索关键词
     ky = 'Geschwisterwagen'
+    # 传入网址和关键词，开始爬取
     run(url_front, ky)
