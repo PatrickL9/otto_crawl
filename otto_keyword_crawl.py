@@ -6,10 +6,7 @@ otto平台根据关键词搜索，查询前3页查询结果的详情页信息
 @Author ：Patrick Lam
 @Date ：2023-01-31
 """
-import time
 import os
-import re
-import json
 import random
 import requests
 import pandas as pd
@@ -59,6 +56,7 @@ def get_ip_pool():
         if len(ip) > 8:
             ipPool.append('http://' + ip)
 
+
 def get_random_ip():
     """
     获取随机代理IP
@@ -66,6 +64,7 @@ def get_random_ip():
     :return:随机代理IP
     """
     return random.choice(ipPool)
+
 
 def get_all_url(url_r):
     """
@@ -85,6 +84,7 @@ def get_all_url(url_r):
     logging.info('爬取首页成功，获取目标url共' + str(len(product_urls)) + '个')
     return product_list
 
+
 def get_product_detail(product_list):
     """
     获取产品url，爬取产品url中的产品信息
@@ -100,6 +100,7 @@ def get_product_detail(product_list):
         i = 0
         logging.info('开始解析产品详情页，解析url ' + product_url)
         while i <= 3:
+            # noinspection PyBroadException
             try:
                 proxies = {'http': get_random_ip()}
                 resp = requests.get(product_url, headers=headers, proxies=proxies, timeout=5)
@@ -174,21 +175,23 @@ def get_product_detail(product_list):
                         # 'ad_tag': ,
                         'catalog_full': catalog_full,
                         'seller': ''.join(seller).strip(),
-                        'product_id': product_id,
+                        'product_id': ''.join(product_id).strip(),
                         'description': description
                     }
                     # 把爬取结果插入到dataframe最后一行
                     df_result.loc[len(df_result)] = temp_dict
                     break
-            except:
+            except Exception:
                 logging.error('页面解析失败，重新获取代理解析')
                 i += 1
     return df_result
+
 
 def save_to_csv(df, key_word):
     """
     结果保存到csv
     :param df: 结果明细
+    :param key_word: 查询的关键词
     :return:
     """
     logging.info('保存结果到CSV文件')
@@ -196,14 +199,22 @@ def save_to_csv(df, key_word):
     file_path = os.path.join(os.getcwd(), file_name)
     df.to_csv(file_path, index=False, sep=',')
 
+
 def run(url_f, key_word):
+    """
+    结果保存到csv
+    :param url_f: 网址前缀
+    :param key_word: 查询的关键词
+    :return:
+    """
     get_ip_pool()
     logging.info('开始otto爬取。初始url: ' + url_f + key_word + ' 关键词： ' + key_word)
     df = get_product_detail(get_all_url(url_f + key_word))
     save_to_csv(df, key_word)
     # print(df)
 
+
 if __name__ == '__main__':
     url_front = 'https://www.otto.de/suche/'
-    key_word = 'bauchtrage'
-    run(url_front, key_word)
+    ky = 'bauchtrage'
+    run(url_front, ky)
