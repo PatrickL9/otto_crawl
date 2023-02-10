@@ -142,18 +142,8 @@ def get_product_detail(product_list):
                     # 星级
                     stars = html.xpath('//div[@class="cr_aggregation"]/a/div/span[1]/@content')
                     # 价格
-                    if html.xpath('//div[@class="pdp_price__inner"]//div[@class="pdp_price__price pl_mt100"]/div/div \
-                                        /span[@class="pl_headline300"]/text()'):
-                        price = html.xpath('//div[@class="pdp_price__inner"]//div[@class="pdp_price__price pl_mt100"]/div/div \
-                                        /span[@class="pl_headline300"]/text()')
-                    elif html.xpath('//div[@class="pdp_price__inner"]//div[@class="pdp_price__price pl_mt100 pl_hidden"]/div/div \
-                                        /span[@class="pl_headline300"]/text()'):
-                        price = html.xpath('//div[@class="pdp_price__inner"]//div[@class="pdp_price__price pl_mt100 pl_hidden"] \
-                                        /div/div/span[@class="pl_headline300"]/text()')
-                    else:
-                        price = html.xpath('//div[@class="pdp_price__inner"] \
-                                        //div[@class="pdp_price__price pl_mt100 js_pdp_price__price"]/div/div \
-                                        /span[@class="pl_headline300"]/text()')
+                    price = html.xpath('//div[@class="pdp_price__inner"]//div[contains(@class,"pdp_price__price")]/div \
+                                        /div/span[@class="pl_headline300"]/text()')
                     # 变体
                     variant = []
                     if html.xpath('//div[@class="pdp_dimensions__values"]'):
