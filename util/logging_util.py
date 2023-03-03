@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
 
 """
+日志类，根据设定的日志级别输出并保存日志
 @Author ：Patrick Lam
 @Date ：2023-01-31
 """
 
 import logging
+import colorlog
 
 logging_level = {"INFO": logging.INFO,
                  "ERROR": logging.ERROR,
@@ -13,6 +15,14 @@ logging_level = {"INFO": logging.INFO,
                  "WARN": logging.WARN,
                  "CRITICAL": logging.CRITICAL
                  }
+
+log_colors_config = {
+    'DEBUG': 'white',  # cyan white
+    'INFO': 'green',
+    'WARN': 'yellow',
+    'ERROR': 'red',
+    'CRITICAL': 'bold_red',
+}
 
 
 class LoggingUtil:
@@ -36,10 +46,17 @@ class LoggingUtil:
         console.setLevel(logging_level[self.level])
         # 设置日志打印格式
         console.setFormatter(
-            logging.Formatter(
-            '%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s'
+            logging.Formatter('%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+        )
+        # 设置日志打印颜色
+        console.setFormatter(
+            colorlog.ColoredFormatter(
+                fmt='%(log_color)s[%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
+                # datefmt='%Y-%m-%d  %H:%M:%S',
+                log_colors=log_colors_config
             )
         )
+
         # 将定义好的console日志handler添加到root logger
         logging.getLogger('').addHandler(console)
         return logging

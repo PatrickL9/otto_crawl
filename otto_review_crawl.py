@@ -13,6 +13,7 @@ import time
 import pandas as pd
 from lxml import etree
 from xml.etree import ElementTree
+from playwright.sync_api import Playwright, sync_playwright, expect
 from util.logging_conf import logging
 from util.setting import proxy_pool, main_url, headers
 
@@ -30,6 +31,7 @@ def parse_all_url(url_list):
                 logging.info('遇到验证码，重试第{}次'.format(str(retry_cnt)))
             else:
                 # 解析页面text
+                # print(text)
                 df_result = get_item_detail(ul, text)
                 logging.info('解析完成，保存结果到CSV')
                 save_to_csv(df_result)
@@ -86,7 +88,7 @@ def get_item_detail(url, h_text):
         # 把爬取结果插入到dataframe最后一行
         df_result.loc[len(df_result)] = temp_dict
     # 防反爬，暂停5秒
-    logging.debug('防反爬，暂停5秒')
+    logging.info('防反爬，暂停5秒')
     time.sleep(5)
     return df_result
 
@@ -117,6 +119,32 @@ def run(url_list):
     logging.info('运行成功，退出程序')
 
 
+def run1(playwright: Playwright, url_list) -> None:
+    for ul in url_list:
+        browser = playwright.chromium.launch(headless=False)
+        context = browser.new_context()
+        # if ''
+        context.set_default_timeout(800000)
+        page = context.new_page()
+        page.goto(ul, wait_until="domcontentloaded")
+        page.reload()
+        time.sleep(3)
+        for i in range(600):
+            time.sleep(0.3)
+            page.keyboard.press("ArrowDown")
+        # 暂停1秒等待页面加载
+        time.sleep(1)
+        text = page.content()
+        df_result = get_item_detail(ul, text)
+        page.close()
+        context.close()
+        browser.close()
+        time.sleep(0.9)
+        logging.info('解析完成，保存结果到CSV')
+        save_to_csv(df_result)
+    logging.info('运行成功，退出程序')
+
+
 if __name__ == '__main__':
     target_url = []
     # 从txt中读取目标asin
@@ -126,5 +154,8 @@ if __name__ == '__main__':
             a = tg.strip()
             target_url.append(a)
     logging.info('读取目标txt完毕，一共有{}个链接需要爬取'.format(len(target_url)))
-    run(target_url)
 
+    with sync_playwright() as playwright:
+        run1(playwright, target_url)
+
+    # run(target_url)
