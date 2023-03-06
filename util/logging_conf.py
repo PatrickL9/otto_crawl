@@ -20,6 +20,6 @@ if not os.path.isdir(logging_dir):
     os.makedirs(logging_dir)
 # 日志文件前缀处理
 to_day = datetime.datetime.now()
-LOGGING_PATH = logging_dir + r'\cd_crawl_{}{:02}{:02}.log'.format(to_day.year, to_day.month, to_day.day)
+LOGGING_PATH = logging_dir + r'\crawl_{}{:02}{:02}.log'.format(to_day.year, to_day.month, to_day.day)
 # 设置日志级别
 logging = logging_util.LoggingUtil(LOGGING_LEVEL, LOGGING_PATH).get_logging()

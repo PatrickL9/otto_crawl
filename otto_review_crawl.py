@@ -13,7 +13,7 @@ import time
 import pandas as pd
 from lxml import etree
 from xml.etree import ElementTree
-from playwright.sync_api import Playwright, sync_playwright, expect
+from playwright.sync_api import Playwright, sync_playwright
 from util.logging_conf import logging
 from util.setting import proxy_pool, main_url, headers
 
@@ -28,7 +28,7 @@ def parse_all_url(url_list):
             resp = requests.get(ul, headers=headers, proxies=proxies, timeout=5)
             text = resp.content.decode('utf-8')
             if 'Robot or human' in text:
-                logging.info('遇到验证码，重试第{}次'.format(str(retry_cnt)))
+                logging.warn('遇到验证码，重试第{}次'.format(str(retry_cnt)))
             else:
                 # 解析页面text
                 # print(text)
@@ -48,22 +48,29 @@ def get_item_detail(url, h_text):
                                       'stars', 'reviews', 'price'))
 
     html = etree.HTML(h_text)
+    # 本页搜索结果总数
     result_total = html.xpath('//span[@class="reptile_tilelist__itemCount"]/text()')
     print(result_total)
     product_lists = html.xpath('//section[@id="san_resultSection"]/article/ul[@class="find_tile__container"]/li')
-    print('一共有{}个链接'.format(len(product_lists)))
+    logging.info('本页一共有{}个产品链接'.format(len(product_lists)))
     # print(product_lists)
     for pl in product_lists:
+        # 产品名称
         title = pl.xpath('.//a[@class="find_tile__productLink"]/@title')
+        # 产品链接
         product_url = pl.xpath('.//a[@class="find_tile__productLink"]/@href')
-        price = pl.xpath('.//span[@class="find_tile__priceValue"]/text()')
+        # 产品价格
+        price = pl.xpath('.//span[contains(@class,"find_tile__priceValue") and not(contains(@class,"old"))]/text()')
+        # 评论总数
         reivews = pl.xpath('.//span[@class="find_tile__ratingNumber"]/text()')
+        # 星级
         stars = pl.xpath('.//span[@class="find_tile__ratingStars"]/svg')
         print(title)
         print(main_url + ''.join(product_url))
         print(reivews)
         print(price)
         # print(stars)
+        # 星级评分计算
         start_point = 0
         for star in stars:
             star_text = ElementTree.tostring(star).decode('utf-8')
@@ -120,20 +127,26 @@ def run(url_list):
 
 
 def run1(playwright: Playwright, url_list) -> None:
+    url_total = len(url_list)
+    cnt = 0
     for ul in url_list:
+        cnt += 1
+        logging.info('开始解析第{}个链接，还有{}个链接需要解析'.format(cnt, url_total-cnt))
         browser = playwright.chromium.launch(headless=False)
         context = browser.new_context()
-        # if ''
         context.set_default_timeout(800000)
         page = context.new_page()
+        logging.info('启动浏览器打开链接： {}'.format(ul))
         page.goto(ul, wait_until="domcontentloaded")
         page.reload()
         time.sleep(3)
+        # 通过下拉拖动页面，处理网页懒加载。otto每页最多有120个搜索结果
         for i in range(600):
             time.sleep(0.3)
             page.keyboard.press("ArrowDown")
         # 暂停1秒等待页面加载
-        time.sleep(1)
+        # time.sleep(1)
+        # page.keyboard.press("End")
         text = page.content()
         df_result = get_item_detail(ul, text)
         page.close()
